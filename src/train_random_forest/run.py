@@ -72,7 +72,7 @@ def go(args):
     logger.info("Fitting")
 
     ######################################
-    # Fit the pipeline sk_pipe by calling the .fit method on X_train and y_train
+    sk_pipe.fit(X_train, y_train)
     # YOUR CODE HERE
     ######################################
 
@@ -96,7 +96,8 @@ def go(args):
     # Save the sk_pipe pipeline as a mlflow.sklearn model in the directory "random_forest_dir"
     # HINT: use mlflow.sklearn.save_model
     mlflow.sklearn.save_model(
-        # YOUR CODE HERE
+        sk_pipe,
+        "random_forest_dir"
         input_example = X_train.iloc[:5]
     )
     ######################################
@@ -159,10 +160,12 @@ def get_inference_pipeline(rf_config, max_tfidf_features):
 
     ######################################
     # Build a pipeline with two steps:
-    # 1 - A SimpleImputer(strategy="most_frequent") to impute missing values
-    # 2 - A OneHotEncoder() step to encode the variable
+    #SimpleImputer(strategy="most_frequent")
+    #OneHotEncoder()
     non_ordinal_categorical_preproc = make_pipeline(
         # YOUR CODE HERE
+        SimpleImputer(strategy="most_frequent")
+        OneHotEncoder(handle_unknown="ignore")
     )
     ######################################
 
@@ -225,7 +228,8 @@ def get_inference_pipeline(rf_config, max_tfidf_features):
 
     sk_pipe = Pipeline(
         steps =[
-        # YOUR CODE HERE
+        ('saved preprocessor' ,preprocessor),
+        ('random forest regressor',random_forest)
         ]
     )
 

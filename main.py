@@ -50,22 +50,57 @@ def go(config: DictConfig):
             )
 
         if "basic_cleaning" in active_steps:
-            ##################
-            # Implement here #
-            ##################
-            pass
+            _ = mlflow.run(
+                os.path.join(hydra.utils.get_original_cwd(), "src","basic_cleaning"),
+                "main",
+                parameters={
+                    "input_artifact": "sample.csv:latest",
+                    "output_artifact": "cleaned_data.csv",
+                    "output_type": "cleaned_data",
+                    "output_description": "Cleaned data(outliers removed and date time conversion)",
+                    "min_price": config['etl']['min_price'],
+                    "max_price": config['etl']['max_price']}
+                    )
+                
+            
+            
+            
 
         if "data_check" in active_steps:
-            ##################
-            # Implement here #
-            ##################
-            pass
+            _ = mlflow.run(
+                os.path.join(hydra.utils.get_original_cwd(),"src", "data_check"),
+                "main",
+                parameters={
+                    "csv": "nyc_airbnb/cleaned_data.csv:latest",
+                    "ref": "nyc_airbnb/cleaned_data.csv:reference",
+                    "kl_threshold": config['data_check']['kl_threshold'],
+                    "min_price": config['etl']['min_price'],
+                    "max_price": config['etl']['max_price']},)
+                                           
+                
+            
+            
+            
+            
+            
 
         if "data_split" in active_steps:
-            ##################
-            # Implement here #
-            ##################
-            pass
+            _ = mlflow.run(
+                f"{config['main']['components_repository']}/train_val_test_split",
+                "main",
+                parameters={
+                    "input": "nyc_airbnb/cleaned_data.csv:latest",
+                    "test_size": config['modeling']['test_size'],
+                    "random_seed": config['modeling']['random_seed'],
+                    "stratify_by": config['modeling']['stratify_by']},
+                    )
+
+            
+
+            
+            
+            
+            
 
         if "train_random_forest" in active_steps:
 
@@ -77,11 +112,16 @@ def go(config: DictConfig):
             # NOTE: use the rf_config we just created as the rf_config parameter for the train_random_forest
             # step
 
-            ##################
-            # Implement here #
-            ##################
+            _ = mlflow.run(
+                os.path.join(root_path, "src", "train_random_forest"),
+                "main",
+                parameters={
+                    ""
+                }
 
-            pass
+                )
+
+            
 
         if "test_regression_model" in active_steps:
 

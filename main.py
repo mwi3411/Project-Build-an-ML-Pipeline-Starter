@@ -21,7 +21,9 @@ _steps = [
 
 
 # This automatically reads in the configuration
+#hydra below was original
 @hydra.main(version_base=None, config_name='config', config_path='.')
+#@hydra.main(config_name='config')
 def go(config: DictConfig):
 
     # Setup the wandb experiment. All runs will be grouped under this name
@@ -31,6 +33,9 @@ def go(config: DictConfig):
     # Steps to execute
     steps_par = config['main']['steps']
     active_steps = steps_par.split(",") if steps_par != "all" else _steps
+
+    #initalize w&b
+   #wandb.init(project=config["main"]["project_name"],group=config["main"]["experiment_name"])
 
     # Move to a temporary directory
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -52,17 +57,23 @@ def go(config: DictConfig):
         if "basic_cleaning" in active_steps:
             _ = mlflow.run(
                 os.path.join(hydra.utils.get_original_cwd(), "src","basic_cleaning"),
-                "main",
+                entry_point ="main",
                 parameters={
                     "input_artifact": "sample.csv:latest",
                     "output_artifact": "cleaned_data.csv",
                     "output_type": "cleaned_data",
                     "output_description": "Cleaned data(outliers removed and date time conversion)",
                     "min_price": config['etl']['min_price'],
-                    "max_price": config['etl']['max_price']}
+                    "max_price": config['etl']['max_price']},
                     )
-                
+            #save the cleaned data to a CSV file
+            #cleaned_data.to_csv("cleaned_data.csv",index=False)
             
+            #create wandb artifact    
+            #cleaned_data_artifact=wandb.Artifact("cleaned_data.csv",type="cleaned_data")
+            # Log the artifact
+            #wandb.log_artifact(cleaned_data_artifact)
+         
             
             
 
@@ -71,8 +82,8 @@ def go(config: DictConfig):
                 os.path.join(hydra.utils.get_original_cwd(),"src", "data_check"),
                 "main",
                 parameters={
-                    "csv": "nyc_airbnb/cleaned_data.csv:latest",
-                    "ref": "nyc_airbnb/cleaned_data.csv:reference",
+                    "csv": "cleaned_data.csv:latest",
+                    "ref": "cleaned_data.csv:reference",
                     "kl_threshold": config['data_check']['kl_threshold'],
                     "min_price": config['etl']['min_price'],
                     "max_price": config['etl']['max_price']},)
@@ -89,7 +100,7 @@ def go(config: DictConfig):
                 f"{config['main']['components_repository']}/train_val_test_split",
                 "main",
                 parameters={
-                    "input": "nyc_airbnb/cleaned_data.csv:latest",
+                    "input": "cleaned_data.csv:latest",
                     "test_size": config['modeling']['test_size'],
                     "random_seed": config['modeling']['random_seed'],
                     "stratify_by": config['modeling']['stratify_by']},
@@ -113,11 +124,17 @@ def go(config: DictConfig):
             # step
 
             _ = mlflow.run(
-                os.path.join(root_path, "src", "train_random_forest"),
+                os.path.join(hydra.utils.get_original_cwd(), "src", "train_random_forest"),
                 "main",
                 parameters={
-                    ""
-                }
+                    "trainval_artifact" : "nyc_airbnb/trainval_data.csv:latest",
+                    "val_size" : config['modeling']['val_size'],
+                    "random_seed" : config['modeling']['random_seed'],
+                    "stratify_by" : config['modeling']['stratify_by'],
+                    "rf_config" : rf_config,
+                    "max_tfidf_features" : config['modeling']['max_tfidf_features'],
+                    "output_artifact" : "random_forest_export"
+                },
 
                 )
 

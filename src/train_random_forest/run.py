@@ -13,6 +13,7 @@ import json
 
 import pandas as pd
 import numpy as np
+from mlflow.models import infer_signature
 from sklearn.compose import ColumnTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.impute import SimpleImputer
@@ -93,12 +94,16 @@ def go(args):
         shutil.rmtree("random_forest_dir")
 
     ######################################
+    #"random_forest_dir"
     # Save the sk_pipe pipeline as a mlflow.sklearn model in the directory "random_forest_dir"
     # HINT: use mlflow.sklearn.save_model
     mlflow.sklearn.save_model(
-        sk_pipe,
-        "random_forest_dir"
+        sk_pipe,  # Replace X_train and y_train with your actual training data variables
+        
+        "random_forest_dir",
+        signature=infer_signature(X_val, y_pred),
         input_example = X_train.iloc[:5]
+
     )
     ######################################
 
@@ -122,7 +127,7 @@ def go(args):
     # Now save the variable mae under the key "mae".
     # YOUR CODE HERE
     ######################################
-
+    run.summary['mae'] = mae
     # Upload to W&B the feture importance visualization
     run.log(
         {
@@ -164,8 +169,8 @@ def get_inference_pipeline(rf_config, max_tfidf_features):
     #OneHotEncoder()
     non_ordinal_categorical_preproc = make_pipeline(
         # YOUR CODE HERE
-        SimpleImputer(strategy="most_frequent")
-        OneHotEncoder(handle_unknown="ignore")
+        SimpleImputer(strategy="most_frequent"),
+        OneHotEncoder()
     )
     ######################################
 
@@ -229,7 +234,7 @@ def get_inference_pipeline(rf_config, max_tfidf_features):
     sk_pipe = Pipeline(
         steps =[
         ('saved preprocessor' ,preprocessor),
-        ('random forest regressor',random_forest)
+        ('random forest',random_forest)
         ]
     )
 
